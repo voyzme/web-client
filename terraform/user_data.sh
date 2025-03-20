@@ -101,28 +101,26 @@ sudo -u ec2-user git config --global --add safe.directory /home/ec2-user/app
 sudo -u ec2-user git checkout vd-development
 
 # copy ssh keys for docker
-mkdir -p /home/ec2-user/app/ssh-keys/
-# copy ssh keys for docker
-mkdir -p /home/ec2-user/app/ssh-keys/
-cp /home/ec2-user/.ssh/id_rsa /home/ec2-user/app/ssh-keys/
-cp /home/ec2-user/.ssh/known_hosts /home/ec2-user/app/ssh-keys/
+sudo -u ec2-user mkdir -p /home/ec2-user/app/ssh-keys/
+sudo -u ec2-user cp /home/ec2-user/.ssh/id_rsa /home/ec2-user/app/ssh-keys/
+sudo -u ec2-user cp /home/ec2-user/.ssh/known_hosts /home/ec2-user/app/ssh-keys/
 
 # copy certificates for nginx
-mkdir -p /home/ec2-user/app/certificates
-cat > /home/ec2-user/app/certificates/ca_bundle.crt << 'EOL'
+sudo -u ec2-user mkdir -p /home/ec2-user/app/certificates
+sudo -u ec2-user cat > /home/ec2-user/app/certificates/ca_bundle.crt << 'EOL'
 ${file("~/web-client/certificates/ca_bundle.crt")}
 EOL
 chmod 644 /home/ec2-user/app/certificates/ca_bundle.crt
 
-cat > /home/ec2-user/app/certificates/certificate.crt << 'EOL'
+sudo -u ec2-user cat > /home/ec2-user/app/certificates/certificate.crt << 'EOL'
 ${file("~/web-client/certificates/certificate.crt")}
 EOL
 chmod 644 /home/ec2-user/app/certificates/certificate.crt
 
-cat > /home/ec2-user/app/certificates/private.key << 'EOL'
+sudo -u ec2-user cat > /home/ec2-user/app/certificates/private.key << 'EOL'
 ${file("~/web-client/certificates/private.key")}
 EOL
 chmod 644 /home/ec2-user/app/certificates/private.key
 
 # run docker compose 
-docker compose up -d
+docker-compose up -d

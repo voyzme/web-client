@@ -9,6 +9,6 @@ output "application_url" {
 }
 
 output "ssh_command" {
-  description = "Command to SSH into the instance"
+  description = "Command to SSH into the instance to run docker services and check"
   value       = "ssh -i <path-to-key>.pem ec2-user@${aws_instance.web.public_ip}"
 }
