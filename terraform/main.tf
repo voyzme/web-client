@@ -25,6 +25,17 @@ variable "environment" {
   }
 }
 
+variable "github_token" {
+  description = "GitHub token for accessing the container registry"
+  type        = string
+  sensitive   = true
+}
+
+variable "release_tag" {
+  description = "Release tag to use for Docker image"
+  type        = string
+}
+
 # AWS Provider configuration
 provider "aws" {
   region = "eu-central-1"
@@ -38,7 +49,7 @@ provider "aws" {
   }
 }
 
-# 🔹 Get latest Amazon Linux 2 AMI
+# Get latest Amazon Linux 2 AMI
 data "aws_ami" "amazon_linux_2" {
   most_recent = true
   owners      = ["amazon"]
@@ -67,7 +78,7 @@ data "aws_subnet" "default" {
 
 # Security Group
 resource "aws_security_group" "web" {
-  name        = "web-client-${var.environment}-sg"
+  name        = "voicedrop-web-client-${var.environment}-sg"
   description = "Security group for web client ${var.environment}"
   vpc_id      = data.aws_vpc.default.id
 
@@ -93,8 +104,24 @@ resource "aws_security_group" "web" {
   }
 
   tags = {
-    Name = "web-client-${var.environment}-sg"
+    Name = "voicedrop-web-client-${var.environment}-sg"
   }
+}
+
+# Route53 Hosted Zone
+resource "aws_route53_zone" "existing" {
+  name = "voicedropdev.com"
+}
+
+# Route53 Record for web.voicedropdev.com
+resource "aws_route53_record" "web" {
+  zone_id = "Z09985382XFFHQY8KW9G7"
+  name    = "web.voicedropdev.com"
+  type    = "A"
+  ttl     = 300
+  
+  # This will be dynamically set to the EC2 instance's public IP
+  records = [aws_instance.web.public_ip]
 }
 
 # Use existing SSH Key Pair
@@ -113,7 +140,10 @@ resource "aws_instance" "web" {
 
   key_name = data.aws_key_pair.deployer.key_name
 
-  user_data = templatefile("${path.module}/user_data.sh", {})
+  user_data = templatefile("${path.module}/user_data.sh", {
+    github_token = var.github_token
+    release_tag = var.release_tag
+  })
 
   tags = {
     Name = "web-client-${var.environment}-instance"

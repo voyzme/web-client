@@ -6,13 +6,13 @@ chmod 666 $LOG_FILE
 exec 1>>$LOG_FILE 2>&1
 
 log() {
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$${2:-INFO}] $${1}"
+    echo "[$(date +'%Y-%m-%dT%H:%M:%S')]: $1"
 }
 
 log_section() {
     echo ""
     echo "================================================================"
-    log "$1" "SECTION"
+    log "$1" 
     echo "================================================================"
 }
 
@@ -31,8 +31,7 @@ echo 'LANG=en_US.UTF-8' > /etc/locale.conf
 echo 'LC_CTYPE=en_US.UTF-8' >> /etc/locale.conf
 source /etc/locale.conf
 
-log "System update and locale configuration completed" "SUCCESS"
-
+log "System update and locale configuration completed" 
 
 # Docker Installation
 log_section "Docker Setup"
@@ -43,84 +42,24 @@ systemctl start docker
 systemctl enable docker
 log "Adding ec2-user to docker group"
 usermod -a -G docker ec2-user
-log "Docker installation completed" "SUCCESS"
+log "Docker installation completed" 
 
-# Git Installation
-log_section "Git Setup"
-log "Installing Git"
-yum install git -y
-log "Git installation completed" "SUCCESS"
+# Set github_token variable
+github_token=${github_token}
 
-# Set up SSH directory and keys
-log "Setting up SSH configuration"
-mkdir -p /home/ec2-user/.ssh
-chmod 700 /home/ec2-user/.ssh
+# Set release_tag variable
+release_tag=${release_tag}
 
-# Add GitHub to known hosts
-log "Adding GitHub to known hosts"
-ssh-keyscan -t rsa github.com >> /home/ec2-user/.ssh/known_hosts
-chmod 644 /home/ec2-user/.ssh/known_hosts
+# Docker Registry Login
+log_section "Docker Registry Authentication"
+log "Logging into GitHub Container Registry"
+echo "${github_token}" | docker login ghcr.io -u voyzme --password-stdin
 
-# Copy the SSH key
-log "Setting up deployment SSH key"
-cat > /home/ec2-user/.ssh/id_rsa << 'EOL'
-${file("~/.ssh/id_rsa")}
-EOL
-chmod 600 /home/ec2-user/.ssh/id_rsa
+# Pull and Run Docker Image
+log_section "Docker Image Deployment"
+log "Pulling Docker image with tag: ${release_tag}"
+docker pull ghcr.io/voyzme/web-client/voicedrop-web:${release_tag}
+log "Running Docker container"
+docker run -d --name web-app -p 8080:8080 ghcr.io/voyzme/web-client/voicedrop-web:${release_tag}
 
-cat > /home/ec2-user/.ssh/id_rsa.pub << 'EOL'
-${file("~/.ssh/id_rsa.pub")}
-EOL
-chmod 644 /home/ec2-user/.ssh/id_rsa.pub
-
-# Set proper ownership
-chown -R ec2-user:ec2-user /home/ec2-user/.ssh
-
-# Test SSH connection to GitHub
-log "Testing GitHub SSH connection"
-sudo -u ec2-user ssh -T -o StrictHostKeyChecking=no git@github.com || true
-
-# Install Docker Compose
-log "Installing Docker Compose"
-curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-Linux-x86_64" -o /usr/local/bin/docker-compose
-chmod +x /usr/local/bin/docker-compose
-
-# Verify Docker Compose installation
-docker-compose version
-
-
-# Create app directory and set permissions
-cd /home/ec2-user
-sudo -u ec2-user git clone https://github.com/voyzme/web-client.git app
-chown -R ec2-user:ec2-user /home/ec2-user/app
-cd /home/ec2-user/app
-
-# Fix Git safe directory issue
-sudo -u ec2-user git config --global --add safe.directory /home/ec2-user/app
-
-sudo -u ec2-user git checkout vd-development
-
-# copy ssh keys for docker
-sudo -u ec2-user mkdir -p /home/ec2-user/app/ssh-keys/
-sudo -u ec2-user cp /home/ec2-user/.ssh/id_rsa /home/ec2-user/app/ssh-keys/
-sudo -u ec2-user cp /home/ec2-user/.ssh/known_hosts /home/ec2-user/app/ssh-keys/
-
-# copy certificates for nginx
-sudo -u ec2-user mkdir -p /home/ec2-user/app/certificates
-sudo -u ec2-user cat > /home/ec2-user/app/certificates/ca_bundle.crt << 'EOL'
-${file("~/web-client/certificates/ca_bundle.crt")}
-EOL
-chmod 644 /home/ec2-user/app/certificates/ca_bundle.crt
-
-sudo -u ec2-user cat > /home/ec2-user/app/certificates/certificate.crt << 'EOL'
-${file("~/web-client/certificates/certificate.crt")}
-EOL
-chmod 644 /home/ec2-user/app/certificates/certificate.crt
-
-sudo -u ec2-user cat > /home/ec2-user/app/certificates/private.key << 'EOL'
-${file("~/web-client/certificates/private.key")}
-EOL
-chmod 644 /home/ec2-user/app/certificates/private.key
-
-# run docker compose 
-docker-compose up -d
+log "Instance configuration completed successfully"
