@@ -11,7 +11,7 @@ permissions:
     packages: write
 
 jobs:
-    build-and-push:
+    build-and-deploy:
         runs-on: ubuntu-latest
 
         steps:
@@ -82,3 +82,13 @@ jobs:
                     -var "github_token=${{ secrets.GHCR_TOKEN }}" \
                     -var "environment=Dev" \
                     -var "release_tag=${{ github.event.release.tag_name }}"
+
+            - name: Show EC2 User Data Log
+              run: |
+                  cd terraform
+                  # Get the instance ID from Terraform output
+                  INSTANCE_ID=$(terraform output -raw instance_id)
+                  # Get the instance's public IP
+                  INSTANCE_IP=$(terraform output -raw instance_public_ip)
+                  # Use SSH to tail the user data log
+                  ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ec2-user@$INSTANCE_IP 'tail -f /var/log/user-data.log'
