@@ -38,9 +38,13 @@ export class SummaryView extends React.Component<IProps, IState> implements ISum
 
     private onTimelineEvent = (event: MatrixEvent): void => {
         const { mxEvent } = this.props;
-        if (!mxEvent || event.getRelation()?.event_id !== mxEvent.getId() || 
-            event.getRelation()?.rel_type !== RelationType.Reference || 
-            event.getContent().msgtype !== MsgType.Summary) return;
+        if (
+            !mxEvent ||
+            event.getRelation()?.event_id !== mxEvent.getId() ||
+            event.getRelation()?.rel_type !== RelationType.Reference ||
+            event.getContent().msgtype !== MsgType.Summary
+        )
+            return;
 
         this.setState({ summary: event.getContent().body });
     };
@@ -95,9 +99,12 @@ export class SummaryView extends React.Component<IProps, IState> implements ISum
             ?.getUnfilteredTimelineSet()
             .getLiveTimeline()
             .getEvents()
-            .filter(e => e.getRelation()?.event_id === mxEvent.getId() &&
-                e.getRelation()?.rel_type === RelationType.Reference &&
-                e.getContent().msgtype === MsgType.Summary);
+            .filter(
+                (e) =>
+                    e.getRelation()?.event_id === mxEvent.getId() &&
+                    e.getRelation()?.rel_type === RelationType.Reference &&
+                    e.getContent().msgtype === MsgType.Summary,
+            );
 
         if (summaryEvents?.length) {
             this.setState({ summary: summaryEvents[summaryEvents.length - 1].getContent().body });
@@ -106,33 +113,51 @@ export class SummaryView extends React.Component<IProps, IState> implements ISum
 
     public requestSummaryIfNeeded = async (): Promise<void> => {
         const { mxEvent } = this.props;
-        if (!mxEvent || (this.state.summary && 
-            !["Generating summary...", "Failed to request summary", "No transcript available to summarize"].includes(this.state.summary))) return;
+        if (
+            !mxEvent ||
+            (this.state.summary &&
+                ![
+                    "Generating summary...",
+                    "Failed to request summary",
+                    "No transcript available to summarize",
+                ].includes(this.state.summary))
+        )
+            return;
 
         const cli = MatrixClientPeg.safeGet();
         const room = cli.getRoom(mxEvent.getRoomId());
         const audioEventId = mxEvent.getId();
 
-        const allTranscripts = room?.getUnfilteredTimelineSet()
+        const allTranscripts = room
+            ?.getUnfilteredTimelineSet()
             .getLiveTimeline()
             .getEvents()
-            .filter(e => e.getRelation()?.event_id === audioEventId && 
-                (e.getContent().msgtype === MsgType.RawSTT || e.getContent().msgtype === MsgType.RefinedSTT));
+            .filter(
+                (e) =>
+                    e.getRelation()?.event_id === audioEventId &&
+                    (e.getContent().msgtype === MsgType.RawSTT || e.getContent().msgtype === MsgType.RefinedSTT),
+            );
 
         if (!allTranscripts?.length) {
             this.setState({ summary: "No transcript available to summarize" });
             return;
         }
 
-        const transcriptEvent = allTranscripts.find(e => e.getContent().msgtype === MsgType.RefinedSTT) || 
-            allTranscripts.find(e => e.getContent().msgtype === MsgType.RawSTT);
+        const transcriptEvent =
+            allTranscripts.find((e) => e.getContent().msgtype === MsgType.RefinedSTT) ||
+            allTranscripts.find((e) => e.getContent().msgtype === MsgType.RawSTT);
 
         try {
-            await cli.http.authedRequest("POST", 
+            await cli.http.authedRequest(
+                "POST",
                 `/_synapse/client/v1/rooms/${mxEvent.getRoomId()}/event/${transcriptEvent.getId()}/summarize`,
-                undefined, 
+                undefined,
                 { language: "en", reference_event_id: audioEventId },
-                { prefix: "", useAuthorizationHeader: true });
+                {
+                    prefix: "",
+                    useAuthorizationHeader: true,
+                },
+            );
             this.setState({ summary: "Generating summary..." });
         } catch {
             this.setState({ summary: "Failed to request summary" });
