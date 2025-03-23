@@ -2,7 +2,7 @@
     "default_server_config": {
         "m.homeserver": {
             "base_url": "https://synapse.voicedropdev.com",
-            "server_name": "VoiceDrop Synapse"
+            "server_name": "VoiceDrop"
         },
         "m.identity_server": {
             "base_url": "https://vector.im"
