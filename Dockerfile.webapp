@@ -12,25 +12,25 @@ RUN apt-get update && apt-get install -y \
     lsb-release
 
 # Add Yarn's GPG key and repository securely
-RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | tee /etc/apt/trusted.gpg.d/yarn.asc
-RUN echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list
+## RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | tee /etc/apt/trusted.gpg.d/yarn.asc
+## RUN echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list
 
 # Update and install Yarn and npm
-RUN apt-get update && apt-get install -y \
-    yarn \
-    npm
+##RUN apt-get update && apt-get install -y \
+##    yarn \
+##    npm
 
 # Set the working directory for the app
 WORKDIR /src
 
 # Copy package.json and package-lock.json
-COPY package*.json ./
+## COPY package*.json ./
 
 # Copy the rest of the app code
-COPY . .
+## COPY . .
 
 # Build the app
-RUN yarn build
+## RUN yarn build
 
 # Remove default Nginx config and add custom one
 # Remove default Nginx config if it exists and add the custom one
@@ -42,11 +42,13 @@ COPY ./certificates/certificate.crt /etc/nginx/ssl/certificate.crt
 COPY ./certificates/private.key /etc/nginx/ssl/private.key
 COPY ./certificates/ca_bundle.crt /etc/nginx/ssl/ca_bundle.crt
 
+COPY ./webapp /usr/share/nginx/html
+
 # Expose port 443 for SSL
 EXPOSE 443
 
 # Set production environment for Yarn
-ENV NODE_ENV=production
+##ENV NODE_ENV=production
 
 # Start the app and Nginx concurrently
-CMD /bin/sh -c "yarn start & nginx -g 'daemon off;'"
+CMD /bin/sh -c "nginx -g 'daemon off;'"
