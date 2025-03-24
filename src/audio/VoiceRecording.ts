@@ -21,6 +21,8 @@ import { createAudioContext } from "./compat";
 import { FixedRollingArray } from "../utils/FixedRollingArray";
 import { clamp } from "../utils/numbers";
 import recorderWorkletFactory from "./recorderWorkletFactory";
+import { AudioStreamTranscription } from "matrix-js-sdk/src/audio/audioStreamTranscription";
+import { getCurrentLanguage } from "../languageHandler";
 
 const CHANNELS = 1; // stereo isn't important
 export const SAMPLE_RATE = 48000; // 48khz is what WebRTC uses. 12khz is where we lose quality.
@@ -70,6 +72,8 @@ export class VoiceRecording extends EventEmitter implements IDestroyable {
     public amplitudes: number[] = []; // at each second mark, generated
     private liveWaveform = new FixedRollingArray(RECORDING_PLAYBACK_SAMPLES, 0);
     public onDataAvailable?: (data: ArrayBuffer) => void;
+    private transcription?: AudioStreamTranscription; // Add transcription instance
+    private finalTranscript: string | null = null;
 
     public get contentType(): string {
         return "audio/ogg";
@@ -174,7 +178,14 @@ export class VoiceRecording extends EventEmitter implements IDestroyable {
             });
 
             // not using EventEmitter here because it leads to detached bufferes
-            this.recorder.ondataavailable = (data: ArrayBuffer) => this.onDataAvailable?.(data);
+            this.recorder.ondataavailable = (data: ArrayBuffer) => {
+                this.onDataAvailable?.(data);
+                try {
+                    this.transcription?.addAudioData(data);
+                } catch (error) {
+                    console.error("Error during transcription:", error);
+                }
+            };
         } catch (e) {
             logger.error("Error starting recording: ", e);
             if (e instanceof DOMException) {
@@ -268,6 +279,23 @@ export class VoiceRecording extends EventEmitter implements IDestroyable {
         await this.makeRecorder();
         await this.recorder?.start();
         this.recording = true;
+
+        const apiKey = process.env.TRANSCRIPTION_API_KEY || "default-api-key";
+
+        console.log("API key:", apiKey);
+        if (apiKey) {
+            this.transcription = new AudioStreamTranscription(
+                (transcript: string) => {
+                    console.log("Transcription update:", transcript);
+                    //this.emit(TRANSCRIPT_EVENT, { transcript }); // not needed in theory, this also makes the UI showing the stopped recording
+                },
+                getCurrentLanguage(),
+                apiKey,
+            );
+        } else {
+            console.log("No transcription API key provided, transcription will not be available");
+        }
+
         this.emit(RecordingState.Started);
     }
 
@@ -296,8 +324,16 @@ export class VoiceRecording extends EventEmitter implements IDestroyable {
             // Finally do our post-processing and clean up
             this.recording = false;
             await this.recorder!.close();
+
             this.emit(RecordingState.Ended);
+
+            // Stop transcription and wait for final result
+            this.finalTranscript = (await this.transcription?.stop()) ?? null;
         });
+    }
+
+    public async getTranscript(): Promise<string> {
+        return this.finalTranscript ?? "";
     }
 
     public destroy(): void {

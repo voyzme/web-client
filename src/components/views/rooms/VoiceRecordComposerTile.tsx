@@ -95,6 +95,7 @@ export default class VoiceRecordComposerTile extends React.PureComponent<IProps,
         const { replyToEvent, relation } = this.props;
 
         await this.state.recorder.stop();
+        const transcript = await this.state.recorder.getTranscript();
 
         let upload: IUpload;
         try {
@@ -139,18 +140,21 @@ export default class VoiceRecordComposerTile extends React.PureComponent<IProps,
                 (actualRoomId: string) => MatrixClientPeg.safeGet().sendMessage(actualRoomId, content),
                 this.props.room.client,
             );
-            // Send the raw STT message for processing
-            const sttContent = createRawSttMessageContent(
-                "Here is some dummy content to be summarized this is not barelz coming from the STT but rather a mocked dummy content we expect to be able to fix and summarize. For these reason it also contains some errors and typos. errors", // This will be replaced by actual content from the server
-                "en-US", // Default to English, can be made configurable
-                voiceMessageResult.event_id, // Reference to the original voice message
-            );
 
-            const sttResult = await doMaybeLocalRoomAction(
-                this.props.room.roomId,
-                (actualRoomId: string) => MatrixClientPeg.safeGet().sendMessage(actualRoomId, sttContent),
-                this.props.room.client,
-            );
+            if (transcript) {
+                // Send the raw STT message for processing
+                const sttContent = createRawSttMessageContent(
+                    transcript, // This will be replaced by actual content from the server
+                    "en-US", // Default to English, can be made configurable
+                    voiceMessageResult.event_id, // Reference to the original voice message
+                );
+
+                const sttResult = await doMaybeLocalRoomAction(
+                    this.props.room.roomId,
+                    (actualRoomId: string) => MatrixClientPeg.safeGet().sendMessage(actualRoomId, sttContent),
+                    this.props.room.client,
+                );
+            }
         } catch (e) {
             logger.error("Error sending voice message:", e);
 
