@@ -62,11 +62,11 @@ export class TranscriptView extends React.Component<IProps, IState> {
     public componentDidUpdate(prevProps: IProps): void {
         if (prevProps.mxEvent?.getId() !== this.props.mxEvent?.getId()) {
             this.updateTranscript();
-            
+
             // Remove listener from old room and add to new room if needed
             const oldRoom = MatrixClientPeg.safeGet().getRoom(prevProps.mxEvent?.getRoomId());
             const newRoom = MatrixClientPeg.safeGet().getRoom(this.props.mxEvent?.getRoomId());
-            
+
             if (oldRoom) {
                 oldRoom.removeListener("Room.timeline", this.onTimelineEvent);
             }
@@ -128,7 +128,9 @@ export class TranscriptView extends React.Component<IProps, IState> {
                     <div className="mx_RecordingPlayback_transcript">
                         <div className="mx_RecordingPlayback_transcriptBody">
                             {transcript}
-                            {isRefinedTranscript && <div className="mx_AudioPlayer_checkmark mx_RecordingPlayback_transcriptType"><span className="mx_RecordingPlayback_refinedLabel">AI refined</span>✓</div>}
+                            {isRefinedTranscript && (
+                                <div className="mx_AudioPlayer_checkmark mx_RecordingPlayback_transcriptType">✦</div>
+                            )}
                         </div>
                     </div>
                 )}

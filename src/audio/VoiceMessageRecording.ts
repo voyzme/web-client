@@ -50,6 +50,10 @@ export class VoiceMessageRecording implements IDestroyable {
         return this.audioBuffer;
     }
 
+    public async getTranscript(): Promise<string> {
+        return this.voiceRecording.getTranscript();
+    }
+
     public on(event: string | symbol, listener: (...args: any[]) => void): this {
         this.voiceRecording.on(event, listener);
         return this;

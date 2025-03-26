@@ -33,7 +33,7 @@ jobs:
 
             - name: Build webapp
               run: |
-                  yarn build
+                  TRANSCRIPTION_API_KEY=${{ secrets.STT_API_KEY }} yarn build
 
             - name: Create certificates directory
               run: |
