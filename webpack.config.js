@@ -698,6 +698,11 @@ module.exports = (env, argv) => {
                 retryDelay: 500,
                 maxRetries: 3,
             }),
+
+            new webpack.DefinePlugin({
+            "process.env.TRANSCRIPTION_API_KEY": JSON.stringify(process.env.TRANSCRIPTION_API_KEY),
+            }),
+
         ].filter(Boolean),
 
         output: {
