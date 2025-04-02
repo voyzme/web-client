@@ -175,7 +175,7 @@ const SimpleRoomPickerDialog: React.FC<IProps> = ({
             // Prepare the request payload
             const payload = {
                 search_query: query,
-                language: navigator.language || "en-US",
+                language: navigator.language || "en",
             };
 
             // Use MatrixClientPeg to get the client and make an authenticated request
@@ -196,9 +196,13 @@ const SimpleRoomPickerDialog: React.FC<IProps> = ({
                         useAuthorizationHeader: true,
                     },
                 );
-
                 // Process the response directly
-                setSearchResults(JSON.stringify(data, null, 2));
+                // With these lines:
+                if (data && data["search-result"] && data["search-result"].answer) {
+                    setSearchResults(data["search-result"].answer);
+                } else {
+                    setSearchResults("No answer found in the search results.");
+                }
                 return; // Early return since we've processed the data
             } catch (error) {
                 // If the authedRequest method fails, log the error and continue with fallback
@@ -271,12 +275,6 @@ const SimpleRoomPickerDialog: React.FC<IProps> = ({
                 </div>
 
                 <div className="mx_SpotlightDialog_description">
-                    {currentRoomId && (
-                        <p className="mx_SpotlightDialog_currentRoom">
-                            {"Current room ID:"} {currentRoomId}
-                        </p>
-                    )}
-
                     {searchResults && (
                         <div className="mx_SpotlightDialog_searchResults">
                             <h4>Search Results:</h4>
