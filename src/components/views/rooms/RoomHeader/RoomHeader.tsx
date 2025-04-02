@@ -11,6 +11,7 @@ import { Body as BodyText, Button, IconButton, Menu, MenuItem, Tooltip } from "@
 import VideoCallIcon from "@vector-im/compound-design-tokens/assets/web/icons/video-call-solid";
 import VoiceCallIcon from "@vector-im/compound-design-tokens/assets/web/icons/voice-call-solid";
 import CloseCallIcon from "@vector-im/compound-design-tokens/assets/web/icons/close";
+import SearchIcon from "@vector-im/compound-design-tokens/assets/web/icons/search";
 import ThreadsIcon from "@vector-im/compound-design-tokens/assets/web/icons/threads-solid";
 import RoomInfoIcon from "@vector-im/compound-design-tokens/assets/web/icons/info-solid";
 import NotificationsIcon from "@vector-im/compound-design-tokens/assets/web/icons/notifications-solid";
@@ -49,7 +50,10 @@ import { type ButtonEvent } from "../../elements/AccessibleButton.tsx";
 import WithPresenceIndicator, { useDmMember } from "../../avatars/WithPresenceIndicator.tsx";
 import { type IOOBData } from "../../../../stores/ThreepidInviteStore.ts";
 import { MainSplitContentType } from "../../../structures/RoomView.tsx";
+import SimpleRoomPickerDialog from "../../dialogs/SimpleRoomPickerDialog";
 import defaultDispatcher from "../../../../dispatcher/dispatcher.ts";
+import { Action } from "../../../../dispatcher/actions";
+import Modal from "../../../../Modal";
 import { RoomSettingsTab } from "../../dialogs/RoomSettingsDialog.tsx";
 import { useScopedRoomContext } from "../../../../contexts/ScopedRoomContext.tsx";
 import { ToggleableIcon } from "./toggle/ToggleableIcon.tsx";
@@ -138,6 +142,29 @@ export default function RoomHeader({
     const callIconWithTooltip = (
         <Tooltip label={videoCallDisabledReason ?? _t("voip|video_call")}>
             <VideoCallIcon />
+        </Tooltip>
+    );
+
+    const openRoomPicker = useCallback(() => {
+        const allRooms = client.getRooms();
+        const modal = Modal.createDialog(SimpleRoomPickerDialog, {
+            rooms: allRooms,
+            currentRoomId: room.roomId,
+            onRoomSelected: (selectedRoom) => {
+                // Navigate to the selected room
+                defaultDispatcher.dispatch({
+                    action: Action.ViewRoom,
+                    room_id: selectedRoom.roomId,
+                });
+            },
+        });
+    }, [client, room.roomId]);
+
+    const searchIconWithTooltip = (
+        <Tooltip label={_t("Search rooms")}>
+            <IconButton onClick={openRoomPicker}>
+                <SearchIcon />
+            </IconButton>
         </Tooltip>
     );
 
@@ -338,6 +365,7 @@ export default function RoomHeader({
                         joinCallButton
                     ) : (
                         <>
+                            {searchIconWithTooltip}
                             {!isVideoRoom && videoCallButton}
                             {!useElementCallExclusively && !isVideoRoom && voiceCallButton}
                         </>

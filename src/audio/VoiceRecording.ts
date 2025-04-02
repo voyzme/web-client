@@ -281,7 +281,7 @@ export class VoiceRecording extends EventEmitter implements IDestroyable {
         this.recording = true;
 
         const apiKey = process.env.TRANSCRIPTION_API_KEY || "default-api-key";
-
+    
         if (apiKey) {
             this.transcription = new AudioStreamTranscription(
                 (transcript: string) => {
